@@ -30,9 +30,9 @@ local currentVelocity = Vector3.new(0, 0, 0)
 local bodyVelocity = nil
 local bodyGyro = nil
 
-local ANIM_IDLE_ID = "rbxassetid://84790548256513"
+local ANIM_IDLE_ID = "rbxassetid://130326830016882"
 local ANIM_TRANS_ID = "rbxassetid://92064667624841"
-local ANIM_RUN_ID = "rbxassetid://98644958183267"
+local ANIM_RUN_ID = "rbxassetid://130326830016882"
 
 --// Süzülme / Yürüme Sesi ID'si
 local FLY_SOUND_ID = "rbxassetid://139095330035399"
