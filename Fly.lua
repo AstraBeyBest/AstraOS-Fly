@@ -23,38 +23,30 @@ local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
 local animator = humanoid:WaitForChild("Animator")
 
---// Uçuş & Matematiksel Açı Parametreleri
+--// Uçuş & Parametreler
 local flying = false
 local flySpeed = 50
 local currentVelocity = Vector3.new(0, 0, 0)
 local bodyVelocity = nil
 local bodyGyro = nil
 
+-- Senin tek kullanmak istediğin Idle Animasyon ID'n
 local ANIM_IDLE_ID = "rbxassetid://130326830016882"
-local ANIM_TRANS_ID = "rbxassetid://92064667624841"
-local ANIM_RUN_ID = "rbxassetid://130326830016882"
 
---// Süzülme / Yürüme Sesi ID'si
+--// Süzülme Sesi ID'si
 local FLY_SOUND_ID = "rbxassetid://139095330035399"
 local originalRunningId = ""
 
-local idleTrack, transTrack, runTrack = nil, nil, nil
-local currentAnimState = "IDLE"
+local idleTrack = nil
 
 local function loadAnimations()
 	if not animator then return end
 	pcall(function()
-		local function createTrack(id, looped)
-			local anim = Instance.new("Animation")
-			anim.AnimationId = id
-			local track = animator:LoadAnimation(anim)
-			track.Looped = looped
-			track.Priority = Enum.AnimationPriority.Action
-			return track
-		end
-		idleTrack = createTrack(ANIM_IDLE_ID, true)
-		transTrack = createTrack(ANIM_TRANS_ID, false)
-		runTrack = createTrack(ANIM_RUN_ID, true)
+		local anim = Instance.new("Animation")
+		anim.AnimationId = ANIM_IDLE_ID
+		idleTrack = animator:LoadAnimation(anim)
+		idleTrack.Looped = true
+		idleTrack.Priority = Enum.AnimationPriority.Action
 	end)
 end
 
@@ -75,7 +67,7 @@ mainFrame.Visible = false
 local mainCorner = Instance.new("UICorner", mainFrame)
 mainCorner.CornerRadius = UDim.new(0, 20)
 
--- RGB Olacak Dış Çerçeve
+-- RGB Dış Çerçeve
 local mainStroke = Instance.new("UIStroke", mainFrame)
 mainStroke.Color = Color3.fromRGB(0, 240, 255)
 mainStroke.Thickness = 2.5
@@ -167,20 +159,18 @@ toggleMenuBtn.AutoButtonColor = false
 
 Instance.new("UICorner", toggleMenuBtn).CornerRadius = UDim.new(0, 18)
 
--- RGB Olacak Buton Çerçevesi
 local toggleStroke = Instance.new("UIStroke", toggleMenuBtn)
 toggleStroke.Color = Color3.fromRGB(0, 240, 255)
 toggleStroke.Thickness = 2.5
 
--- RGB Olacak Buton Parlaması (Glow)
 local btnGlow = Instance.new("UIStroke", toggleMenuBtn)
 btnGlow.Color = Color3.fromRGB(0, 240, 255)
 btnGlow.Thickness = 5
 btnGlow.Transparency = 0.5
 
---// RGB Renk Döngüsü Motoru (Tüm dış çizgileri ve parlamaları dinamik renklendirir)
+--// RGB Renk Döngüsü
 RunService.RenderStepped:Connect(function()
-	local hue = (tick() % 5) / 5 -- 5 saniyede bir tam renk döngüsü
+	local hue = (tick() % 5) / 5
 	local rgbColor = Color3.fromHSV(hue, 1, 1)
 	
 	mainStroke.Color = rgbColor
@@ -190,7 +180,7 @@ RunService.RenderStepped:Connect(function()
 	btnGlow.Color = rgbColor
 end)
 
--- Sürekli çalışan nefes alma (pulsing) animasyonu
+-- Nefes alma efekti
 task.spawn(function()
 	while true do
 		TweenService:Create(btnGlow, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Transparency = 0.1}):Play()
@@ -202,12 +192,10 @@ task.spawn(function()
 	end
 end)
 
---// Akıcı Menü Açılış / Kapanış Animasyonları
+--// Menü Aç/Kapat
 local menuOpen = false
 toggleMenuBtn.MouseButton1Click:Connect(function()
 	menuOpen = not menuOpen
-	
-	-- Tıklama Efekti (Bounce)
 	TweenService:Create(toggleMenuBtn, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 60, 0, 60), Rotation = -20}):Play()
 	task.wait(0.1)
 	TweenService:Create(toggleMenuBtn, TweenInfo.new(0.2, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {Size = UDim2.new(0, 70, 0, 70), Rotation = 0}):Play()
@@ -216,14 +204,11 @@ toggleMenuBtn.MouseButton1Click:Connect(function()
 		mainFrame.Visible = true
 		mainFrame.Size = UDim2.new(0, 10, 0, 250)
 		mainFrame.Position = UDim2.new(0, 110, 0, 25)
-		
-		-- Esnek yaylı açılış animasyonu
 		TweenService:Create(mainFrame, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 			Size = UDim2.new(0, 340, 0, 250),
 			Position = UDim2.new(0, 130, 0, 25)
 		}):Play()
 	else
-		-- Kapanış animasyonu
 		local closeTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {
 			Size = UDim2.new(0, 0, 0, 250),
 			Position = UDim2.new(0, 110, 0, 25)
@@ -234,7 +219,6 @@ toggleMenuBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
---// Butonlar İçin Hover (Üzerine Gelme) Animasyonları
 local function setupInteractiveButton(btn, normalColor, hoverColor)
 	btn.MouseEnter:Connect(function()
 		TweenService:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
@@ -254,37 +238,7 @@ setupInteractiveButton(flyButton, Color3.fromRGB(15, 35, 50), Color3.fromRGB(25,
 setupInteractiveButton(minusBtn, Color3.fromRGB(40, 15, 20), Color3.fromRGB(65, 25, 35))
 setupInteractiveButton(plusBtn, Color3.fromRGB(15, 40, 25), Color3.fromRGB(25, 65, 40))
 
---// Matematik Tabanlı Animasyon Tetikleyici
-local function updateAnimationState(speedMagnitude)
-	local isMoving = speedMagnitude > 2.0
-	
-	if isMoving and currentAnimState == "IDLE" then
-		currentAnimState = "TRANS"
-		pcall(function()
-			if idleTrack then idleTrack:Stop(0.15) end
-			if transTrack then transTrack:Play(0.1) end
-		end)
-		
-		task.delay(0.15, function()
-			if currentAnimState == "TRANS" then
-				currentAnimState = "RUN"
-				pcall(function()
-					if runTrack and not runTrack.IsPlaying then runTrack:Play(0.15) end
-				end)
-			end
-		end)
-		
-	elseif not isMoving and (currentAnimState == "RUN" or currentAnimState == "TRANS") then
-		currentAnimState = "IDLE"
-		pcall(function()
-			if runTrack then runTrack:Stop(0.2) end
-			if transTrack then transTrack:Stop(0.1) end
-			if idleTrack and not idleTrack.IsPlaying then idleTrack:Play(0.2) end
-		end)
-	end
-end
-
---// Ses Efektini Ayarlama Fonksiyonu
+--// Ses Efekti
 local function applyGlideSound(state)
 	local soundP = character:FindFirstChild("HumanoidRootPart")
 	if not soundP then return end
@@ -316,7 +270,7 @@ local function applyGlideSound(state)
 	end
 end
 
---// Uçuş ve Matematiksel Eğilme Motoru
+--// Uçuş Motoru
 local function startFly()
 	if flying then return end
 	flying = true
@@ -341,8 +295,12 @@ local function startFly()
 	humanoid.PlatformStand = true
 	currentVelocity = Vector3.new(0, 0, 0)
 
-	currentAnimState = "IDLE"
-	if idleTrack then pcall(function() idleTrack:Play(0.2) end) end
+	-- Sadece senin idle animasyonunu oynatıyoruz
+	if idleTrack then 
+		pcall(function() 
+			idleTrack:Play(0.2) 
+		end) 
+	end
 
 	applyGlideSound(true)
 
@@ -376,8 +334,6 @@ local function startFly()
 			bodyGyro.CFrame = bodyGyro.CFrame:Lerp(camera.CFrame, math.clamp(dt * 12, 0, 1))
 			humanoid:Move(Vector3.new(0, 0, 0), false)
 		end
-
-		updateAnimationState(speedMagnitude)
 	end)
 end
 
@@ -396,10 +352,7 @@ local function stopFly()
 
 	pcall(function()
 		if idleTrack then idleTrack:Stop(0.2) end
-		if transTrack then transTrack:Stop(0.2) end
-		if runTrack then runTrack:Stop(0.2) end
 	end)
-	currentAnimState = "IDLE"
 
 	if bodyVelocity then bodyVelocity:Destroy() end
 	if bodyGyro then bodyGyro:Destroy() end
