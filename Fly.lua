@@ -1,405 +1,639 @@
---// Servisler
+-- AstraOS Ultimate Client - Gelişmiş Kesintisiz Spinbot ve Sürüklenebilir Arayüz Sürümü
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
+local TextChatService = game:GetService("TextChatService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local playerName = game.Players.LocalPlayer.Name
+local LocalPlayer = Players.LocalPlayer
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local Camera = workspace.CurrentCamera
+local Workspace = game:GetService("Workspace")
 
-local player = Players.LocalPlayer
-if not player then return end
-
-local playerGui = player:WaitForChild("PlayerGui")
-
--- Güvenli ScreenGui Oluşturma
-local screenGui = playerGui:FindFirstChild("AstaOS Fly")
-if not screenGui then
-	screenGui = Instance.new("ScreenGui", playerGui)
-	screenGui.Name = "AstraOS Fly"
-	screenGui.ResetOnSpawn = false
-	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+-- Önceki GUI varsa temizle
+if CoreGui:FindFirstChild("AstraOS_GUI") then
+    CoreGui.AstraOS_GUI:Destroy()
 end
 
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-local humanoid = character:WaitForChild("Humanoid")
-local animator = humanoid:WaitForChild("Animator")
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AstraOS_GUI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
---// Uçuş & Parametreler
+-- ================= AÇMA / KAPAMA (TOGGLE) BUTONU (Sürüklenebilir) =================
+local ToggleMenuButton = Instance.new("TextButton", ScreenGui)
+ToggleMenuButton.Name = "ToggleMenuButton"
+ToggleMenuButton.Size = UDim2.new(0, 0, 0, 0)
+ToggleMenuButton.Position = UDim2.new(0, 18, 0, 125)
+ToggleMenuButton.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+ToggleMenuButton.Font = Enum.Font.GothamBold
+ToggleMenuButton.Text = "ASTRA"
+ToggleMenuButton.TextSize = 20
+ToggleMenuButton.AutoButtonColor = false
+ToggleMenuButton.Visible = false
+
+Instance.new("UICorner", ToggleMenuButton).CornerRadius = UDim.new(0, 16)
+
+local ToggleStroke = Instance.new("UIStroke", ToggleMenuButton)
+ToggleStroke.Color = Color3.fromRGB(0, 240, 255)
+ToggleStroke.Thickness = 2.5
+
+local BtnGlow = Instance.new("UIStroke", ToggleMenuButton)
+BtnGlow.Color = Color3.fromRGB(0, 240, 255)
+BtnGlow.Thickness = 5
+BtnGlow.Transparency = 0.5
+
+-- Sürükleme Mantığı (Toggle Buton)
+local draggingToggle, dragInputToggle, toggleStartPos, startPosToggle
+ToggleMenuButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingToggle = true
+        toggleStartPos = input.Position
+        startPosToggle = ToggleMenuButton.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                draggingToggle = false
+            end
+        end)
+    end
+end)
+
+ToggleMenuButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInputToggle = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInputToggle and draggingToggle then
+        local delta = input.Position - toggleStartPos
+        ToggleMenuButton.Position = UDim2.new(startPosToggle.X.Scale, startPosToggle.X.Offset + delta.X, startPosToggle.Y.Scale, startPosToggle.Y.Offset + delta.Y)
+    end
+end)
+
+-- ================= RP NAME CHANGER ===================
+local args = {
+    [1] = "RolePlayName",
+    [2] = "💠 AstraOS User 💠"
+}
+
+-- ================= ANA KONTROL PANELİ =================
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 340, 0, 335)
+MainFrame.Position = UDim2.new(0, 110, 0, 125)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+MainFrame.BackgroundTransparency = 0.15
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Visible = false
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local MainCorner = Instance.new("UICorner", MainFrame)
+MainCorner.CornerRadius = UDim.new(0, 20)
+
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Color = Color3.fromRGB(0, 240, 255)
+MainStroke.Thickness = 2.5
+MainStroke.Transparency = 0.1
+
+local MainGradient = Instance.new("UIGradient", MainFrame)
+MainGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 25, 45)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 12))
+})
+MainGradient.Rotation = 135
+
+local TitleLabel = Instance.new("TextLabel", MainFrame)
+TitleLabel.Size = UDim2.new(1, 0, 0, 45)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Font = Enum.Font.GothamBlack
+TitleLabel.Text = "  ⚡ AstraOS // ULTIMATE PANEL"
+TitleLabel.TextColor3 = Color3.fromRGB(0, 240, 255)
+TitleLabel.TextSize = 14
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local TitleLine = Instance.new("Frame", MainFrame)
+TitleLine.Size = UDim2.new(0.9, 0, 0, 2)
+TitleLine.Position = UDim2.new(0.05, 0, 0, 45)
+TitleLine.BackgroundColor3 = Color3.fromRGB(0, 240, 255)
+TitleLine.BackgroundTransparency = 0.3
+TitleLine.BorderSizePixel = 0
+
+-- Fly Butonu
+local FlyButton = Instance.new("TextButton", MainFrame)
+FlyButton.Size = UDim2.new(0.9, 0, 0, 42)
+FlyButton.Position = UDim2.new(0.05, 0, 0, 55)
+FlyButton.BackgroundColor3 = Color3.fromRGB(15, 35, 50)
+FlyButton.Font = Enum.Font.GothamBold
+FlyButton.Text = "UÇUŞ MODU [ KAPALI ]"
+FlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlyButton.TextSize = 14
+FlyButton.AutoButtonColor = false
+Instance.new("UICorner", FlyButton).CornerRadius = UDim.new(0, 12)
+local FlyBtnStroke = Instance.new("UIStroke", FlyButton)
+FlyBtnStroke.Color = Color3.fromRGB(0, 240, 255)
+FlyBtnStroke.Thickness = 2
+
+-- Spinbot Butonu
+local SpinButton = Instance.new("TextButton", MainFrame)
+SpinButton.Size = UDim2.new(0.9, 0, 0, 42)
+SpinButton.Position = UDim2.new(0.05, 0, 0, 103)
+SpinButton.BackgroundColor3 = Color3.fromRGB(15, 35, 50)
+SpinButton.Font = Enum.Font.GothamBold
+SpinButton.Text = "SPINBOT [ KAPALI ]"
+SpinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpinButton.TextSize = 14
+SpinButton.AutoButtonColor = false
+Instance.new("UICorner", SpinButton).CornerRadius = UDim.new(0, 12)
+local SpinBtnStroke = Instance.new("UIStroke", SpinButton)
+SpinBtnStroke.Color = Color3.fromRGB(0, 240, 255)
+SpinBtnStroke.Thickness = 2
+
+-- Spin Hızı Kontrolü
+local SpinSpeedContainer = Instance.new("Frame", MainFrame)
+SpinSpeedContainer.Size = UDim2.new(0.9, 0, 0, 38)
+SpinSpeedContainer.Position = UDim2.new(0.05, 0, 0, 151)
+SpinSpeedContainer.BackgroundTransparency = 1
+
+local SpinSpeedLabel = Instance.new("TextLabel", SpinSpeedContainer)
+SpinSpeedLabel.Size = UDim2.new(1, 0, 1, 0)
+SpinSpeedLabel.BackgroundTransparency = 1
+SpinSpeedLabel.Font = Enum.Font.GothamBold
+SpinSpeedLabel.Text = "SPIN SPEED: 35"
+SpinSpeedLabel.TextColor3 = Color3.fromRGB(220, 180, 255)
+SpinSpeedLabel.TextSize = 13
+
+local SpinMinusBtn = Instance.new("TextButton", SpinSpeedContainer)
+SpinMinusBtn.Size = UDim2.new(0, 35, 0, 35)
+SpinMinusBtn.Position = UDim2.new(0, 0, 0.5, -17.5)
+SpinMinusBtn.BackgroundColor3 = Color3.fromRGB(40, 15, 20)
+SpinMinusBtn.Font = Enum.Font.GothamBold
+SpinMinusBtn.Text = "-"
+SpinMinusBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+SpinMinusBtn.TextSize = 16
+SpinMinusBtn.AutoButtonColor = false
+Instance.new("UICorner", SpinMinusBtn).CornerRadius = UDim.new(0, 10)
+
+local SpinPlusBtn = Instance.new("TextButton", SpinSpeedContainer)
+SpinPlusBtn.Size = UDim2.new(0, 35, 0, 35)
+SpinPlusBtn.Position = UDim2.new(1, -35, 0.5, -17.5)
+SpinPlusBtn.BackgroundColor3 = Color3.fromRGB(15, 40, 25)
+SpinPlusBtn.Font = Enum.Font.GothamBold
+SpinPlusBtn.Text = "+"
+SpinPlusBtn.TextColor3 = Color3.fromRGB(90, 255, 150)
+SpinPlusBtn.TextSize = 16
+SpinPlusBtn.AutoButtonColor = false
+Instance.new("UICorner", SpinPlusBtn).CornerRadius = UDim.new(0, 10)
+
+-- Velocity Kontrolü (1 - 2000 aralığı)
+local SpeedContainer = Instance.new("Frame", MainFrame)
+SpeedContainer.Size = UDim2.new(0.9, 0, 0, 38)
+SpeedContainer.Position = UDim2.new(0.05, 0, 0, 195)
+SpeedContainer.BackgroundTransparency = 1
+
+local SpeedLabel = Instance.new("TextLabel", SpeedContainer)
+SpeedLabel.Size = UDim2.new(1, 0, 1, 0)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Font = Enum.Font.GothamBold
+SpeedLabel.Text = "VELOCITY: 50"
+SpeedLabel.TextColor3 = Color3.fromRGB(180, 220, 255)
+SpeedLabel.TextSize = 13
+
+local MinusBtn = Instance.new("TextButton", SpeedContainer)
+MinusBtn.Size = UDim2.new(0, 35, 0, 35)
+MinusBtn.Position = UDim2.new(0, 0, 0.5, -17.5)
+MinusBtn.BackgroundColor3 = Color3.fromRGB(40, 15, 20)
+MinusBtn.Font = Enum.Font.GothamBold
+MinusBtn.Text = "-"
+MinusBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+MinusBtn.TextSize = 16
+MinusBtn.AutoButtonColor = false
+Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 10)
+
+local PlusBtn = Instance.new("TextButton", SpeedContainer)
+PlusBtn.Size = UDim2.new(0, 35, 0, 35)
+PlusBtn.Position = UDim2.new(1, -35, 0.5, -17.5)
+PlusBtn.BackgroundColor3 = Color3.fromRGB(15, 40, 25)
+PlusBtn.Font = Enum.Font.GothamBold
+PlusBtn.Text = "+"
+PlusBtn.TextColor3 = Color3.fromRGB(90, 255, 150)
+PlusBtn.TextSize = 16
+PlusBtn.AutoButtonColor = false
+Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 10)
+
+-- RGB Tema Toggle Butonu
+local RGBToggleBtn = Instance.new("TextButton", MainFrame)
+RGBToggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+RGBToggleBtn.Position = UDim2.new(0.05, 0, 0, 240)
+RGBToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+RGBToggleBtn.Font = Enum.Font.GothamBold
+RGBToggleBtn.Text = "RGB TEMA: [ AÇIK ]"
+RGBToggleBtn.TextColor3 = Color3.fromRGB(0, 240, 255)
+RGBToggleBtn.TextSize = 13
+RGBToggleBtn.AutoButtonColor = false
+Instance.new("UICorner", RGBToggleBtn).CornerRadius = UDim.new(0, 10)
+local RGBToggleStroke = Instance.new("UIStroke", RGBToggleBtn)
+RGBToggleStroke.Color = Color3.fromRGB(0, 240, 255)
+RGBToggleStroke.Thickness = 1.5
+
+-- ================= YÜKLEME EKRANI =================
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Name = "LoadingFrame"
+LoadingFrame.Parent = ScreenGui
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+LoadingFrame.BorderSizePixel = 0
+LoadingFrame.Position = UDim2.new(0.5, -160, 0.5, -80)
+LoadingFrame.Size = UDim2.new(0, 320, 0, 160)
+LoadingFrame.BackgroundTransparency = 1
+LoadingFrame.Visible = true
+
+local LoadingCorner = Instance.new("UICorner")
+LoadingCorner.CornerRadius = UDim.new(0, 16)
+LoadingCorner.Parent = LoadingFrame
+
+local LoadingStroke = Instance.new("UIStroke")
+LoadingStroke.Parent = LoadingFrame
+LoadingStroke.Thickness = 2
+LoadingStroke.Transparency = 1
+
+local LoadingText = Instance.new("TextLabel")
+LoadingText.Parent = LoadingFrame
+LoadingText.BackgroundTransparency = 1
+LoadingText.Position = UDim2.new(0, 0, 0.25, 0)
+LoadingText.Size = UDim2.new(1, 0, 0, 40)
+LoadingText.Font = Enum.Font.GothamBlack
+LoadingText.Text = "⚡ AstraOS Başlatılıyor..."
+LoadingText.TextColor3 = Color3.fromRGB(0, 240, 255)
+LoadingText.TextSize = 18
+LoadingText.TextTransparency = 1
+
+local BarBackground = Instance.new("Frame")
+BarBackground.Parent = LoadingFrame
+BarBackground.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+BarBackground.BorderSizePixel = 0
+BarBackground.Position = UDim2.new(0.1, 0, 0.65, 0)
+BarBackground.Size = UDim2.new(0.8, 0, 0, 10)
+BarBackground.BackgroundTransparency = 1
+
+local BarCorner = Instance.new("UICorner")
+BarCorner.CornerRadius = UDim.new(1, 0)
+BarCorner.Parent = BarBackground
+
+local BarFill = Instance.new("Frame")
+BarFill.Parent = BarBackground
+BarFill.BackgroundColor3 = Color3.fromRGB(0, 240, 255)
+BarFill.BorderSizePixel = 0
+BarFill.Size = UDim2.new(0, 0, 1, 0)
+
+local FillCorner = Instance.new("UICorner")
+FillCorner.CornerRadius = UDim.new(1, 0)
+FillCorner.Parent = BarFill
+
+TweenService:Create(LoadingFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.15}):Play()
+TweenService:Create(LoadingStroke, TweenInfo.new(0.5), {Transparency = 0.2}):Play()
+TweenService:Create(LoadingText, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+TweenService:Create(BarBackground, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
+
+task.spawn(function()
+    local tween = TweenService:Create(BarFill, TweenInfo.new(1.8, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)})
+    tween:Play()
+    tween.Completed:Wait()
+    
+    TweenService:Create(LoadingFrame, TweenInfo.new(0.4), {BackgroundTransparency = 1, Position = UDim2.new(0.5, -160, 0.5, -110)}):Play()
+    TweenService:Create(LoadingStroke, TweenInfo.new(0.4), {Transparency = 1}):Play()
+    TweenService:Create(LoadingText, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
+    TweenService:Create(BarBackground, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(BarFill, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
+    task.wait(0.4)
+    LoadingFrame:Destroy()
+    
+    ToggleMenuButton.Visible = true
+    TweenService:Create(ToggleMenuButton, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 85, 0, 85)}):Play()
+end)
+
+-- ================= RGB & NEFES ALMA =================
+local rgbEnabled = true
+
+RunService.RenderStepped:Connect(function()
+    if rgbEnabled then
+        local hue = (tick() % 5) / 5
+        local rgbColor = Color3.fromHSV(hue, 1, 1)
+        
+        MainStroke.Color = rgbColor
+        TitleLine.BackgroundColor3 = rgbColor
+        TitleLabel.TextColor3 = rgbColor
+        ToggleStroke.Color = rgbColor
+        BtnGlow.Color = rgbColor
+        RGBToggleBtn.TextColor3 = rgbColor
+        RGBToggleStroke.Color = rgbColor
+    end
+end)
+
+task.spawn(function()
+    while true do
+        TweenService:Create(BtnGlow, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Transparency = 0.1}):Play()
+        TweenService:Create(ToggleMenuButton, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Size = UDim2.new(0, 90, 0, 90)}):Play()
+        task.wait(1.2)
+        TweenService:Create(BtnGlow, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Transparency = 0.7}):Play()
+        TweenService:Create(ToggleMenuButton, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Size = UDim2.new(0, 85, 0, 85)}):Play()
+        task.wait(1.2)
+    end
+end)
+
+local menuOpen = false
+ToggleMenuButton.MouseButton1Click:Connect(function()
+    menuOpen = not menuOpen
+    TweenService:Create(ToggleMenuButton, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 75, 0, 75), Rotation = -20}):Play()
+    task.wait(0.1)
+    TweenService:Create(ToggleMenuButton, TweenInfo.new(0.2, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {Size = UDim2.new(0, 85, 0, 85), Rotation = 0}):Play()
+
+    if menuOpen then
+        MainFrame.Visible = true
+        MainFrame.Size = UDim2.new(0, 10, 0, 335)
+        TweenService:Create(MainFrame, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 340, 0, 335)
+        }):Play()
+    else
+        local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 335)
+        })
+        closeTween:Play()
+        closeTween.Completed:Wait()
+        MainFrame.Visible = false
+    end
+end)
+
+RGBToggleBtn.MouseButton1Click:Connect(function()
+    rgbEnabled = not rgbEnabled
+    if rgbEnabled then
+        RGBToggleBtn.Text = "RGB TEMA: [ AÇIK ]"
+    else
+        RGBToggleBtn.Text = "RGB TEMA: [ KAPALI ]"
+        local staticColor = Color3.fromRGB(0, 240, 255)
+        MainStroke.Color = staticColor
+        TitleLine.BackgroundColor3 = staticColor
+        TitleLabel.TextColor3 = staticColor
+        ToggleStroke.Color = staticColor
+        BtnGlow.Color = staticColor
+        RGBToggleBtn.TextColor3 = staticColor
+        RGBToggleStroke.Color = staticColor
+    end
+end)
+
+-- ================= GELİŞTİRİLMİŞ KESİNTİSİZ SPINBOT MANTIĞI =================
+local spinEnabled = false
+local spinSpeed = 35
+local currentSpinAngle = 0
+
+-- RenderStepped yerine deltaTime (dt) bazlı açı biriktirme sistemi kullanılarak kare hızından (FPS) etkilenmeme sorunu giderildi
+RunService.RenderStepped:Connect(function(dt)
+    if spinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local rootPart = LocalPlayer.Character.HumanoidRootPart
+        currentSpinAngle = (currentSpinAngle + (spinSpeed * dt * 60)) % 360
+        rootPart.CFrame = CFrame.new(rootPart.Position) * CFrame.Angles(0, math.rad(currentSpinAngle), 0)
+    end
+end)
+
+SpinButton.MouseButton1Click:Connect(function()
+    spinEnabled = not spinEnabled
+    if spinEnabled then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            currentSpinAngle = math.deg(math.atan2(-LocalPlayer.Character.HumanoidRootPart.CFrame.LookVector.Z, LocalPlayer.Character.HumanoidRootPart.CFrame.LookVector.X))
+        end
+        SpinButton.Text = "SPINBOT [ AKTİF ]"
+        TweenService:Create(SpinButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 180)}):Play()
+        TweenService:Create(SpinBtnStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(255, 255, 255)}):Play()
+    else
+        SpinButton.Text = "SPINBOT [ KAPALI ]"
+        TweenService:Create(SpinButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(15, 35, 50)}):Play()
+        TweenService:Create(SpinBtnStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(0, 240, 255)}):Play()
+    end
+end)
+
+SpinPlusBtn.MouseButton1Click:Connect(function()
+    spinSpeed = math.clamp(spinSpeed + 25, 1, 2000)
+    SpinSpeedLabel.Text = "SPIN SPEED: " .. spinSpeed
+end)
+
+SpinMinusBtn.MouseButton1Click:Connect(function()
+    spinSpeed = math.clamp(spinSpeed - 25, 1, 2000)
+    SpinSpeedLabel.Text = "SPIN SPEED: " .. spinSpeed
+end)
+
+-- ================= FLY MANTIĞI & AKILLI ANİMASYON YAKALAYICI =================
 local flying = false
 local flySpeed = 50
 local currentVelocity = Vector3.new(0, 0, 0)
 local bodyVelocity = nil
 local bodyGyro = nil
+local activeAnimTrack = nil
 
--- Senin tek kullanmak istediğin Idle Animasyon ID'n
-local ANIM_IDLE_ID = "rbxassetid://130326830016882"
-
---// Süzülme Sesi ID'si
 local FLY_SOUND_ID = "rbxassetid://139095330035399"
-local originalRunningId = ""
 
-local idleTrack = nil
-
-local function loadAnimations()
-	if not animator then return end
-	pcall(function()
-		local anim = Instance.new("Animation")
-		anim.AnimationId = ANIM_IDLE_ID
-		idleTrack = animator:LoadAnimation(anim)
-		idleTrack.Looped = true
-		idleTrack.Priority = Enum.AnimationPriority.Action
-	end)
+local function getCharacterParts()
+    local char = LocalPlayer.Character
+    if not char then return nil, nil, nil end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChild("Humanoid")
+    return char, hrp, hum
 end
 
-loadAnimations()
+local function playCurrentCharacterAnimation()
+    local _, _, hum = getCharacterParts()
+    if not hum then return end
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if not animator then return end
+    
+    pcall(function()
+        for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+            track:Stop(0.2)
+        end
+        
+        local candidateTracks = animator:GetPlayingAnimationTracks()
+        if #candidateTracks > 0 then
+            activeAnimTrack = candidateTracks[1]
+            activeAnimTrack:Play(0.2)
+        else
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://507765000"
+            activeAnimTrack = animator:LoadAnimation(anim)
+            activeAnimTrack.Looped = true
+            activeAnimTrack:Play(0.2)
+        end
+    end)
+end
+
 local keys = {W = false, A = false, S = false, D = false, Space = false, LeftShift = false}
 
---// Ana Kontrol Paneli
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 340, 0, 250)
-mainFrame.Position = UDim2.new(0, 130, 0, 25)
-mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
-mainFrame.BackgroundTransparency = 0.15
-mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
-mainFrame.Visible = false
-
-local mainCorner = Instance.new("UICorner", mainFrame)
-mainCorner.CornerRadius = UDim.new(0, 20)
-
--- RGB Dış Çerçeve
-local mainStroke = Instance.new("UIStroke", mainFrame)
-mainStroke.Color = Color3.fromRGB(0, 240, 255)
-mainStroke.Thickness = 2.5
-mainStroke.Transparency = 0.1
-
-local mainGradient = Instance.new("UIGradient", mainFrame)
-mainGradient.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 25, 45)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 12))
-})
-mainGradient.Rotation = 135
-
-local titleLabel = Instance.new("TextLabel", mainFrame)
-titleLabel.Size = UDim2.new(1, 0, 0, 55)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Font = Enum.Font.GothamBlack
-titleLabel.Text = "  ⚡ AstraOS // FLIGHT SYSTEM"
-titleLabel.TextColor3 = Color3.fromRGB(0, 240, 255)
-titleLabel.TextSize = 14
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-local titleLine = Instance.new("Frame", mainFrame)
-titleLine.Size = UDim2.new(0.9, 0, 0, 2)
-titleLine.Position = UDim2.new(0.05, 0, 0, 55)
-titleLine.BackgroundColor3 = Color3.fromRGB(0, 240, 255)
-titleLine.BackgroundTransparency = 0.3
-titleLine.BorderSizePixel = 0
-
-local flyButton = Instance.new("TextButton", mainFrame)
-flyButton.Size = UDim2.new(0.9, 0, 0, 58)
-flyButton.Position = UDim2.new(0.05, 0, 0, 72)
-flyButton.BackgroundColor3 = Color3.fromRGB(15, 35, 50)
-flyButton.Font = Enum.Font.GothamBold
-flyButton.Text = "UÇUŞ MODU [ KAPALI ]"
-flyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-flyButton.TextSize = 14
-flyButton.AutoButtonColor = false
-
-Instance.new("UICorner", flyButton).CornerRadius = UDim.new(0, 14)
-local flyBtnStroke = Instance.new("UIStroke", flyButton)
-flyBtnStroke.Color = Color3.fromRGB(0, 240, 255)
-flyBtnStroke.Thickness = 2
-
-local speedContainer = Instance.new("Frame", mainFrame)
-speedContainer.Size = UDim2.new(0.9, 0, 0, 55)
-speedContainer.Position = UDim2.new(0.05, 0, 0, 145)
-speedContainer.BackgroundTransparency = 1
-
-local speedLabel = Instance.new("TextLabel", speedContainer)
-speedLabel.Size = UDim2.new(1, 0, 1, 0)
-speedLabel.BackgroundTransparency = 1
-speedLabel.Font = Enum.Font.GothamBold
-speedLabel.Text = "VELOCITY: 50"
-speedLabel.TextColor3 = Color3.fromRGB(180, 220, 255)
-speedLabel.TextSize = 14
-
-local minusBtn = Instance.new("TextButton", speedContainer)
-minusBtn.Size = UDim2.new(0, 48, 0, 48)
-minusBtn.Position = UDim2.new(0, 0, 0.5, -24)
-minusBtn.BackgroundColor3 = Color3.fromRGB(40, 15, 20)
-minusBtn.Font = Enum.Font.GothamBold
-minusBtn.Text = "-"
-minusBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
-minusBtn.TextSize = 20
-minusBtn.AutoButtonColor = false
-Instance.new("UICorner", minusBtn).CornerRadius = UDim.new(0, 12)
-
-local plusBtn = Instance.new("TextButton", speedContainer)
-plusBtn.Size = UDim2.new(0, 48, 0, 48)
-plusBtn.Position = UDim2.new(1, -48, 0.5, -24)
-plusBtn.BackgroundColor3 = Color3.fromRGB(15, 40, 25)
-plusBtn.Font = Enum.Font.GothamBold
-plusBtn.Text = "+"
-plusBtn.TextColor3 = Color3.fromRGB(90, 255, 150)
-plusBtn.TextSize = 20
-plusBtn.AutoButtonColor = false
-Instance.new("UICorner", plusBtn).CornerRadius = UDim.new(0, 12)
-
---// Açma/Kapama Butonu
-local toggleMenuBtn = Instance.new("TextButton", screenGui)
-toggleMenuBtn.Name = "ToggleMenuButton"
-toggleMenuBtn.Size = UDim2.new(0, 70, 0, 70)
-toggleMenuBtn.Position = UDim2.new(0, 35, 0, 25)
-toggleMenuBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-toggleMenuBtn.Font = Enum.Font.GothamBold
-toggleMenuBtn.Text = "FLY"
-toggleMenuBtn.TextSize = 32
-toggleMenuBtn.AutoButtonColor = false
-
-Instance.new("UICorner", toggleMenuBtn).CornerRadius = UDim.new(0, 18)
-
-local toggleStroke = Instance.new("UIStroke", toggleMenuBtn)
-toggleStroke.Color = Color3.fromRGB(0, 240, 255)
-toggleStroke.Thickness = 2.5
-
-local btnGlow = Instance.new("UIStroke", toggleMenuBtn)
-btnGlow.Color = Color3.fromRGB(0, 240, 255)
-btnGlow.Thickness = 5
-btnGlow.Transparency = 0.5
-
---// RGB Renk Döngüsü
-RunService.RenderStepped:Connect(function()
-	local hue = (tick() % 5) / 5
-	local rgbColor = Color3.fromHSV(hue, 1, 1)
-	
-	mainStroke.Color = rgbColor
-	titleLine.BackgroundColor3 = rgbColor
-	titleLabel.TextColor3 = rgbColor
-	toggleStroke.Color = rgbColor
-	btnGlow.Color = rgbColor
-end)
-
--- Nefes alma efekti
-task.spawn(function()
-	while true do
-		TweenService:Create(btnGlow, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Transparency = 0.1}):Play()
-		TweenService:Create(toggleMenuBtn, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Size = UDim2.new(0, 74, 0, 74), Position = UDim2.new(0, 33, 0, 23)}):Play()
-		task.wait(1.2)
-		TweenService:Create(btnGlow, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Transparency = 0.7}):Play()
-		TweenService:Create(toggleMenuBtn, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Size = UDim2.new(0, 70, 0, 70), Position = UDim2.new(0, 35, 0, 25)}):Play()
-		task.wait(1.2)
-	end
-end)
-
---// Menü Aç/Kapat
-local menuOpen = false
-toggleMenuBtn.MouseButton1Click:Connect(function()
-	menuOpen = not menuOpen
-	TweenService:Create(toggleMenuBtn, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 60, 0, 60), Rotation = -20}):Play()
-	task.wait(0.1)
-	TweenService:Create(toggleMenuBtn, TweenInfo.new(0.2, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {Size = UDim2.new(0, 70, 0, 70), Rotation = 0}):Play()
-
-	if menuOpen then
-		mainFrame.Visible = true
-		mainFrame.Size = UDim2.new(0, 10, 0, 250)
-		mainFrame.Position = UDim2.new(0, 110, 0, 25)
-		TweenService:Create(mainFrame, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 340, 0, 250),
-			Position = UDim2.new(0, 130, 0, 25)
-		}):Play()
-	else
-		local closeTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 0, 0, 250),
-			Position = UDim2.new(0, 110, 0, 25)
-		})
-		closeTween:Play()
-		closeTween.Completed:Wait()
-		mainFrame.Visible = false
-	end
-end)
-
-local function setupInteractiveButton(btn, normalColor, hoverColor)
-	btn.MouseEnter:Connect(function()
-		TweenService:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-			BackgroundColor3 = hoverColor,
-			Size = btn.Size + UDim2.new(0, 6, 0, 4)
-		}):Play()
-	end)
-	btn.MouseLeave:Connect(function()
-		TweenService:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-			BackgroundColor3 = normalColor,
-			Size = btn.Size - UDim2.new(0, 6, 0, 4)
-		}):Play()
-	end)
-end
-
-setupInteractiveButton(flyButton, Color3.fromRGB(15, 35, 50), Color3.fromRGB(25, 55, 80))
-setupInteractiveButton(minusBtn, Color3.fromRGB(40, 15, 20), Color3.fromRGB(65, 25, 35))
-setupInteractiveButton(plusBtn, Color3.fromRGB(15, 40, 25), Color3.fromRGB(25, 65, 40))
-
---// Ses Efekti
 local function applyGlideSound(state)
-	local soundP = character:FindFirstChild("HumanoidRootPart")
-	if not soundP then return end
-	
-	local runningSound = soundP:FindFirstChild("Running")
-	if state then
-		if runningSound then
-			originalRunningId = runningSound.SoundId
-			runningSound.SoundId = FLY_SOUND_ID
-			runningSound.Looped = true
-			
-			local pitchEffect = runningSound:FindFirstChild("GlidePitch")
-			if not pitchEffect then
-				pitchEffect = Instance.new("PitchShiftSoundEffect", runningSound)
-				pitchEffect.Name = "GlidePitch"
-				pitchEffect.Octave = 0.85
-			end
-			
-			if not runningSound.IsPlaying then
-				runningSound:Play()
-			end
-		end
-	else
-		if runningSound and originalRunningId ~= "" then
-			runningSound.SoundId = originalRunningId
-			local pitchEffect = runningSound:FindFirstChild("GlidePitch")
-			if pitchEffect then pitchEffect:Destroy() end
-		end
-	end
+    local _, hrp, _ = getCharacterParts()
+    if not hrp then return end
+    
+    local runningSound = hrp:FindFirstChild("Running")
+    if state then
+        if runningSound then
+            runningSound.SoundId = FLY_SOUND_ID
+            runningSound.Looped = true
+            local pitchEffect = runningSound:FindFirstChild("GlidePitch")
+            if not pitchEffect then
+                pitchEffect = Instance.new("PitchShiftSoundEffect", runningSound)
+                pitchEffect.Name = "GlidePitch"
+                pitchEffect.Octave = 0.85
+            end
+            if not runningSound.IsPlaying then
+                runningSound:Play()
+            end
+        end
+    else
+        if runningSound then
+            runningSound.SoundId = "rbxassetid://911447043"
+            local pitchEffect = runningSound:FindFirstChild("GlidePitch")
+            if pitchEffect then pitchEffect:Destroy() end
+        end
+    end
 end
 
---// Uçuş Motoru
 local function startFly()
-	if flying then return end
-	flying = true
-	
-	flyButton.Text = "UÇUŞ MODU [ AKTİF ]"
-	TweenService:Create(flyButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 180)}):Play()
-	TweenService:Create(flyBtnStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(255, 255, 255)}):Play()
+    if flying then return end
+    local char, hrp, hum = getCharacterParts()
+    if not char or not hrp or not hum then return end
+    
+    flying = true
+    
+    FlyButton.Text = "UÇUŞ MODU [ AKTİF ]"
+    TweenService:Create(FlyButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 180)}):Play()
+    TweenService:Create(FlyBtnStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(255, 255, 255)}):Play()
 
-	local animateScript = character:FindFirstChild("Animate")
-	if animateScript then animateScript.Disabled = true end
+    local animateScript = char:FindFirstChild("Animate")
+    if animateScript then animateScript.Disabled = true end
 
-	local camera = workspace.CurrentCamera
-	
-	bodyVelocity = Instance.new("BodyVelocity", humanoidRootPart)
-	bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-	bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    local camera = workspace.CurrentCamera
+    
+    bodyVelocity = Instance.new("BodyVelocity", hrp)
+    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
 
-	bodyGyro = Instance.new("BodyGyro", humanoidRootPart)
-	bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-	bodyGyro.CFrame = camera.CFrame
+    bodyGyro = Instance.new("BodyGyro", hrp)
+    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bodyGyro.CFrame = camera.CFrame
 
-	humanoid.PlatformStand = true
-	currentVelocity = Vector3.new(0, 0, 0)
+    hum.PlatformStand = true
+    currentVelocity = Vector3.new(0, 0, 0)
 
-	-- Sadece senin idle animasyonunu oynatıyoruz
-	if idleTrack then 
-		pcall(function() 
-			idleTrack:Play(0.2) 
-		end) 
-	end
+    playCurrentCharacterAnimation()
+    applyGlideSound(true)
 
-	applyGlideSound(true)
+    RunService.RenderStepped:Connect(function(dt)
+        if not flying then return end
+        local _, currentHrp, currentHum = getCharacterParts()
+        if not currentHrp or not currentHum then return end
+        
+        camera = workspace.CurrentCamera
 
-	RunService.RenderStepped:Connect(function(dt)
-		if not flying then return end
-		
-		camera = workspace.CurrentCamera
+        local targetDirection = Vector3.new(0, 0, 0)
+        if keys.W then targetDirection = targetDirection + camera.CFrame.LookVector end
+        if keys.S then targetDirection = targetDirection - camera.CFrame.LookVector end
+        if keys.D then targetDirection = targetDirection + camera.CFrame.RightVector end
+        if keys.A then targetDirection = targetDirection - camera.CFrame.RightVector end
+        if keys.Space then targetDirection = targetDirection + Vector3.new(0, 1, 0) end
+        if keys.LeftShift then targetDirection = targetDirection - Vector3.new(0, 1, 0) end
 
-		local targetDirection = Vector3.new(0, 0, 0)
-		if keys.W then targetDirection = targetDirection + camera.CFrame.LookVector end
-		if keys.S then targetDirection = targetDirection - camera.CFrame.LookVector end
-		if keys.D then targetDirection = targetDirection + camera.CFrame.RightVector end
-		if keys.A then targetDirection = targetDirection - camera.CFrame.RightVector end
-		if keys.Space then targetDirection = targetDirection + Vector3.new(0, 1, 0) end
-		if keys.LeftShift then targetDirection = targetDirection - Vector3.new(0, 1, 0) end
+        local targetVelocity = targetDirection * flySpeed
+        currentVelocity = currentVelocity:Lerp(targetVelocity, math.clamp(dt * 16, 0, 1))
+        if bodyVelocity and bodyVelocity.Parent then
+            bodyVelocity.Velocity = currentVelocity
+        end
 
-		local targetVelocity = targetDirection * flySpeed
-		currentVelocity = currentVelocity:Lerp(targetVelocity, math.clamp(dt * 16, 0, 1))
-		bodyVelocity.Velocity = currentVelocity
-
-		local speedMagnitude = currentVelocity.Magnitude
-		
-		if speedMagnitude > 2.0 then
-			local forwardFactor = currentVelocity.Unit:Dot(camera.CFrame.LookVector)
-			local tiltAngle = math.clamp(forwardFactor * 0.35, -0.5, 0.5)
-			local adjustedCFrame = camera.CFrame * CFrame.Angles(-tiltAngle, 0, 0)
-			bodyGyro.CFrame = bodyGyro.CFrame:Lerp(adjustedCFrame, math.clamp(dt * 12, 0, 1))
-			
-			humanoid:Move(Vector3.new(0, 0, -1), true)
-		else
-			bodyGyro.CFrame = bodyGyro.CFrame:Lerp(camera.CFrame, math.clamp(dt * 12, 0, 1))
-			humanoid:Move(Vector3.new(0, 0, 0), false)
-		end
-	end)
+        local speedMagnitude = currentVelocity.Magnitude
+        if speedMagnitude > 2.0 then
+            local forwardFactor = currentVelocity.Unit:Dot(camera.CFrame.LookVector)
+            local tiltAngle = math.clamp(forwardFactor * 0.35, -0.5, 0.5)
+            local adjustedCFrame = camera.CFrame * CFrame.Angles(-tiltAngle, 0, 0)
+            if bodyGyro and bodyGyro.Parent then
+                bodyGyro.CFrame = bodyGyro.CFrame:Lerp(adjustedCFrame, math.clamp(dt * 12, 0, 1))
+            end
+            currentHum:Move(Vector3.new(0, 0, -1), true)
+        else
+            if bodyGyro and bodyGyro.Parent then
+                bodyGyro.CFrame = bodyGyro.CFrame:Lerp(camera.CFrame, math.clamp(dt * 12, 0, 1))
+            end
+            currentHum:Move(Vector3.new(0, 0, 0), false)
+        end
+    end)
 end
 
 local function stopFly()
-	if not flying then return end
-	flying = false
+    if not flying then return end
+    flying = false
 
-	flyButton.Text = "UÇUŞ MODU [ KAPALI ]"
-	TweenService:Create(flyButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(15, 35, 50)}):Play()
-	TweenService:Create(flyBtnStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(0, 240, 255)}):Play()
+    FlyButton.Text = "UÇUŞ MODU [ KAPALI ]"
+    TweenService:Create(FlyButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(15, 35, 50)}):Play()
+    TweenService:Create(FlyBtnStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(0, 240, 255)}):Play()
 
-	local animateScript = character:FindFirstChild("Animate")
-	if animateScript then animateScript.Disabled = false end
+    local char, _, hum = getCharacterParts()
+    if char then
+        local animateScript = char:FindFirstChild("Animate")
+        if animateScript then animateScript.Disabled = false end
+    end
 
-	applyGlideSound(false)
+    applyGlideSound(false)
 
-	pcall(function()
-		if idleTrack then idleTrack:Stop(0.2) end
-	end)
+    pcall(function()
+        if activeAnimTrack then activeAnimTrack:Stop(0.2) end
+    end)
 
-	if bodyVelocity then bodyVelocity:Destroy() end
-	if bodyGyro then bodyGyro:Destroy() end
-	
-	humanoid.PlatformStand = false
+    if bodyVelocity then bodyVelocity:Destroy() end
+    if bodyGyro then bodyGyro:Destroy() end
+    
+    if hum then
+        hum.PlatformStand = false
+    end
 end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.KeyCode == Enum.KeyCode.W then keys.W = true
-	elseif input.KeyCode == Enum.KeyCode.S then keys.S = true
-	elseif input.KeyCode == Enum.KeyCode.A then keys.A = true
-	elseif input.KeyCode == Enum.KeyCode.D then keys.D = true
-	elseif input.KeyCode == Enum.KeyCode.Space then keys.Space = true
-	elseif input.KeyCode == Enum.KeyCode.LeftShift then keys.LeftShift = true
-	end
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.W then keys.W = true
+    elseif input.KeyCode == Enum.KeyCode.S then keys.S = true
+    elseif input.KeyCode == Enum.KeyCode.A then keys.A = true
+    elseif input.KeyCode == Enum.KeyCode.D then keys.D = true
+    elseif input.KeyCode == Enum.KeyCode.Space then keys.Space = true
+    elseif input.KeyCode == Enum.KeyCode.LeftShift then keys.LeftShift = true
+    end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-	if input.KeyCode == Enum.KeyCode.W then keys.W = false
-	elseif input.KeyCode == Enum.KeyCode.S then keys.S = false
-	elseif input.KeyCode == Enum.KeyCode.A then keys.A = false
-	elseif input.KeyCode == Enum.KeyCode.D then keys.D = false
-	elseif input.KeyCode == Enum.KeyCode.Space then keys.Space = false
-	elseif input.KeyCode == Enum.KeyCode.LeftShift then keys.LeftShift = false
-	end
+    if input.KeyCode == Enum.KeyCode.W then keys.W = false
+    elseif input.KeyCode == Enum.KeyCode.S then keys.S = false
+    elseif input.KeyCode == Enum.KeyCode.A then keys.A = false
+    elseif input.KeyCode == Enum.KeyCode.D then keys.D = false
+    elseif input.KeyCode == Enum.KeyCode.Space then keys.Space = false
+    elseif input.KeyCode == Enum.KeyCode.LeftShift then keys.LeftShift = false
+    end
 end)
 
-flyButton.MouseButton1Click:Connect(function()
-	if flying then stopFly() else startFly() end
+FlyButton.MouseButton1Click:Connect(function()
+    if flying then stopFly() else startFly() end
 end)
 
-plusBtn.MouseButton1Click:Connect(function()
-	flySpeed = math.clamp(flySpeed + 10, 10, 400)
-	speedLabel.Text = "VELOCITY: " .. flySpeed
+PlusBtn.MouseButton1ListClick = nil
+PlusBtn.MouseButton1Click:Connect(function()
+    flySpeed = math.clamp(flySpeed + 50, 1, 2000)
+    SpeedLabel.Text = "VELOCITY: " .. flySpeed
 end)
 
-minusBtn.MouseButton1Click:Connect(function()
-	flySpeed = math.clamp(flySpeed - 10, 10, 400)
-	speedLabel.Text = "VELOCITY: " .. flySpeed
+MinusBtn.MouseButton1Click:Connect(function()
+    flySpeed = math.clamp(flySpeed - 50, 1, 2000)
+    SpeedLabel.Text = "VELOCITY: " .. flySpeed
 end)
 
-player.CharacterAdded:Connect(function(newChar)
-	character = newChar
-	humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-	humanoid = character:WaitForChild("Humanoid")
-	animator = humanoid:WaitForChild("Animator")
-	loadAnimations()
-	stopFly()
+LocalPlayer.CharacterAdded:Connect(function(_)
+    stopFly()
 end)
