@@ -1,4 +1,4 @@
--- AstraOS Ultimate Client - Optimize Edilmiş Sürüm
+-- AstraOS Ultimate Client - Sekmeli (Tabbed) Optimize Edilmiş Sürüm
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -97,7 +97,7 @@ end)
 -- ================= ANA KONTROL PANELİ =================
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 340, 0, 508)
+MainFrame.Size = UDim2.new(0, 340, 0, 500)
 MainFrame.Position = UDim2.new(0, 110, 0, 125)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
 MainFrame.BackgroundTransparency = 0.15
@@ -147,7 +147,7 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 local TitleLabel = Instance.new("TextLabel", MainFrame)
-TitleLabel.Size = UDim2.new(1, 0, 0, 45)
+TitleLabel.Size = UDim2.new(1, 0, 0, 35)
 TitleLabel.BackgroundTransparency = 1
 TitleLabel.Font = Enum.Font.GothamBlack
 TitleLabel.Text = "  ⚡ AstraOS // MISC Script"
@@ -157,57 +157,132 @@ TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 local TitleLine = Instance.new("Frame", MainFrame)
 TitleLine.Size = UDim2.new(0.9, 0, 0, 2)
-TitleLine.Position = UDim2.new(0.05, 0, 0, 45)
+TitleLine.Position = UDim2.new(0.05, 0, 0, 35)
 TitleLine.BackgroundColor3 = Color3.fromRGB(0, 240, 255)
 TitleLine.BackgroundTransparency = 0.3
 TitleLine.BorderSizePixel = 0
 
-local function createButton(posY, text)
-    local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0.9, 0, 0, 42)
+-- ================= SEKME SİSTEMİ (TABS) =================
+local TabBar = Instance.new("Frame", MainFrame)
+TabBar.Size = UDim2.new(0.9, 0, 0, 35)
+TabBar.Position = UDim2.new(0.05, 0, 0, 42)
+TabBar.BackgroundTransparency = 1
+
+local TabListLayout = Instance.new("UIListLayout", TabBar)
+TabListLayout.FillDirection = Enum.FillDirection.Horizontal
+TabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabListLayout.Padding = UDim.new(0, 6)
+
+-- İçerik Sayfalarını Tutan Konteyner
+local ContentContainer = Instance.new("Frame", MainFrame)
+ContentContainer.Size = UDim2.new(1, 0, 1, -85)
+ContentContainer.Position = UDim2.new(0, 0, 0, 82)
+ContentContainer.BackgroundTransparency = 1
+
+local function createTabContent()
+    local page = Instance.new("ScrollingFrame", ContentContainer)
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.BackgroundTransparency = 1
+    page.CanvasSize = UDim2.new(0, 0, 0, 420)
+    page.ScrollBarThickness = 3
+    page.ScrollingDirection = Enum.ScrollingDirection.Y
+    page.Visible = false
+    return page
+end
+
+local Page1 = createTabContent() -- Ana Menü
+local Page2 = createTabContent() -- Hareket & Görünüm
+local Page3 = createTabContent() -- Oyuncu İzleme (View)
+
+Page1.Visible = true -- Varsayılan açık sayfa
+
+local function createTabButton(name, layoutOrder, targetPage, activeStrokeList)
+    local tabBtn = Instance.new("TextButton", TabBar)
+    tabBtn.Size = UDim2.new(0.31, 0, 1, 0)
+    tabBtn.LayoutOrder = layoutOrder
+    tabBtn.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
+    tabBtn.Font = Enum.Font.GothamBold
+    tabBtn.Text = name
+    tabBtn.TextColor3 = Color3.fromRGB(150, 150, 170)
+    tabBtn.TextSize = 11
+    tabBtn.AutoButtonColor = false
+    Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 8)
+    local stroke = Instance.new("UIStroke", tabBtn)
+    stroke.Color = Color3.fromRGB(40, 40, 60)
+    stroke.Thickness = 1.2
+    
+    table.insert(activeStrokeList, {Button = tabBtn, Stroke = stroke, Page = targetPage})
+    return tabBtn
+end
+
+local tabButtonsData = {}
+local TabBtn1 = createTabButton("ANA MENÜ", 1, Page1, tabButtonsData)
+local TabBtn2 = createTabButton("HAREKET", 2, Page2, tabButtonsData)
+local TabBtn3 = createTabButton("İZLEME (VIEW)", 3, Page3, tabButtonsData)
+
+-- Sekme Değiştirme Fonksiyonu
+local function switchTab(selectedPage)
+    for _, data in ipairs(tabButtonsData) do
+        if data.Page == selectedPage then
+            data.Page.Visible = true
+            TweenService:Create(data.Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 45, 65), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+            TweenService:Create(data.Stroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(0, 240, 255)}):Play()
+        else
+            data.Page.Visible = false
+            TweenService:Create(data.Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(15, 20, 30), TextColor3 = Color3.fromRGB(150, 150, 170)}):Play()
+            TweenService:Create(data.Stroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(40, 40, 60)}):Play()
+        end
+    end
+end
+
+TabBtn1.MouseButton1Click:Connect(function() switchTab(Page1) end)
+TabBtn2.MouseButton1Click:Connect(function() switchTab(Page2) end)
+TabBtn3.MouseButton1Click:Connect(function() switchTab(Page3) end)
+
+-- İlk açılış sekme renk ayarı
+TabBtn1.BackgroundColor3 = Color3.fromRGB(25, 45, 65)
+TabBtn1.TextColor3 = Color3.fromRGB(255, 255, 255)
+TabBtn1.UIStroke.Color = Color3.fromRGB(0, 240, 255)
+
+local function createButton(parent, posY, text)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(0.9, 0, 0, 38)
     btn.Position = UDim2.new(0.05, 0, 0, posY)
     btn.BackgroundColor3 = Color3.fromRGB(15, 35, 50)
     btn.Font = Enum.Font.GothamBold
     btn.Text = text
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 13
+    btn.TextSize = 12
     btn.AutoButtonColor = false
     
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 12)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
     local stroke = Instance.new("UIStroke", btn)
     stroke.Color = Color3.fromRGB(0, 240, 255)
-    stroke.Thickness = 2
+    stroke.Thickness = 1.5
 
     btn.MouseEnter:Connect(function()
         TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 55, 75)}):Play()
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 2.5}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 2}):Play()
     end)
     btn.MouseLeave:Connect(function()
         if not btn:GetAttribute("ActiveState") then
             TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(15, 35, 50)}):Play()
         end
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 2}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 1.5}):Play()
     end)
-    btn.MouseButton1Down:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.1), {Size = UDim2.new(0.86, 0, 0, 38)}):Play()
-    end)
-    btn.MouseButton1Up:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.1), {Size = UDim2.new(0.9, 0, 0, 42)}):Play()
-    end)
-
     return btn, stroke
 end
 
-local FlyButton, FlyBtnStroke = createButton(55, "UÇUŞ MODU [ KAPALI ]")
-local NoclipButton, NoclipBtnStroke = createButton(103, "NOCLIP [ KAPALI ]")
-local ResolutionButton, ResBtnStroke = createButton(151, "FOV CHANGER: [ KAPALI ]")
-local TrailButton, TrailBtnStroke = createButton(199, "RGB TRAIL: [ KAPALI ]")
-local SpinButton, SpinBtnStroke = createButton(247, "SPINBOT [ KAPALI ]")
+-- ================= SAYFA 1: ANA MENÜ =================
+local ResolutionButton, ResBtnStroke = createButton(Page1, 15, "FOV CHANGER: [ KAPALI ]")
+local TrailButton, TrailBtnStroke = createButton(Page1, 60, "RGB TRAIL: [ KAPALI ]")
+local SpinButton, SpinBtnStroke = createButton(Page1, 105, "SPINBOT [ KAPALI ]")
 
 -- Spin Hızı Kontrolü
-local SpinSpeedContainer = Instance.new("Frame", MainFrame)
-SpinSpeedContainer.Size = UDim2.new(0.9, 0, 0, 38)
-SpinSpeedContainer.Position = UDim2.new(0.05, 0, 0, 295)
+local SpinSpeedContainer = Instance.new("Frame", Page1)
+SpinSpeedContainer.Size = UDim2.new(0.9, 0, 0, 35)
+SpinSpeedContainer.Position = UDim2.new(0.05, 0, 0, 150)
 SpinSpeedContainer.BackgroundTransparency = 1
 
 local SpinSpeedLabel = Instance.new("TextLabel", SpinSpeedContainer)
@@ -216,34 +291,54 @@ SpinSpeedLabel.BackgroundTransparency = 1
 SpinSpeedLabel.Font = Enum.Font.GothamBold
 SpinSpeedLabel.Text = "SPIN SPEED: 35"
 SpinSpeedLabel.TextColor3 = Color3.fromRGB(220, 180, 255)
-SpinSpeedLabel.TextSize = 13
+SpinSpeedLabel.TextSize = 12
 
 local SpinMinusBtn = Instance.new("TextButton", SpinSpeedContainer)
-SpinMinusBtn.Size = UDim2.new(0, 35, 0, 35)
-SpinMinusBtn.Position = UDim2.new(0, 0, 0.5, -17.5)
+SpinMinusBtn.Size = UDim2.new(0, 30, 0, 30)
+SpinMinusBtn.Position = UDim2.new(0, 0, 0.5, -15)
 SpinMinusBtn.BackgroundColor3 = Color3.fromRGB(40, 15, 20)
 SpinMinusBtn.Font = Enum.Font.GothamBold
 SpinMinusBtn.Text = "-"
 SpinMinusBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
-SpinMinusBtn.TextSize = 16
+SpinMinusBtn.TextSize = 14
 SpinMinusBtn.AutoButtonColor = false
-Instance.new("UICorner", SpinMinusBtn).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", SpinMinusBtn).CornerRadius = UDim.new(0, 8)
 
 local SpinPlusBtn = Instance.new("TextButton", SpinSpeedContainer)
-SpinPlusBtn.Size = UDim2.new(0, 35, 0, 35)
-SpinPlusBtn.Position = UDim2.new(1, -35, 0.5, -17.5)
+SpinPlusBtn.Size = UDim2.new(0, 30, 0, 30)
+SpinPlusBtn.Position = UDim2.new(1, -30, 0.5, -15)
 SpinPlusBtn.BackgroundColor3 = Color3.fromRGB(15, 40, 25)
 SpinPlusBtn.Font = Enum.Font.GothamBold
 SpinPlusBtn.Text = "+"
 SpinPlusBtn.TextColor3 = Color3.fromRGB(90, 255, 150)
-SpinPlusBtn.TextSize = 16
+SpinPlusBtn.TextSize = 14
 SpinPlusBtn.AutoButtonColor = false
-Instance.new("UICorner", SpinPlusBtn).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", SpinPlusBtn).CornerRadius = UDim.new(0, 8)
+
+-- RGB Tema Toggle Butonu
+local RGBToggleBtn = Instance.new("TextButton", Page1)
+RGBToggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+RGBToggleBtn.Position = UDim2.new(0.05, 0, 0, 195)
+RGBToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+RGBToggleBtn.Font = Enum.Font.GothamBold
+RGBToggleBtn.Text = "RGB TEMA: [ AÇIK ]"
+RGBToggleBtn.TextColor3 = Color3.fromRGB(0, 240, 255)
+RGBToggleBtn.TextSize = 12
+RGBToggleBtn.AutoButtonColor = false
+Instance.new("UICorner", RGBToggleBtn).CornerRadius = UDim.new(0, 8)
+local RGBToggleStroke = Instance.new("UIStroke", RGBToggleBtn)
+RGBToggleStroke.Color = Color3.fromRGB(0, 240, 255)
+RGBToggleStroke.Thickness = 1.5
+
+
+-- ================= SAYFA 2: HAREKET =================
+local FlyButton, FlyBtnStroke = createButton(Page2, 15, "UÇUŞ MODU [ KAPALI ]")
+local NoclipButton, NoclipBtnStroke = createButton(Page2, 60, "NOCLIP [ KAPALI ]")
 
 -- Velocity Kontrolü
-local SpeedContainer = Instance.new("Frame", MainFrame)
-SpeedContainer.Size = UDim2.new(0.9, 0, 0, 38)
-SpeedContainer.Position = UDim2.new(0.05, 0, 0, 339)
+local SpeedContainer = Instance.new("Frame", Page2)
+SpeedContainer.Size = UDim2.new(0.9, 0, 0, 35)
+SpeedContainer.Position = UDim2.new(0.05, 0, 0, 105)
 SpeedContainer.BackgroundTransparency = 1
 
 local SpeedLabel = Instance.new("TextLabel", SpeedContainer)
@@ -252,44 +347,140 @@ SpeedLabel.BackgroundTransparency = 1
 SpeedLabel.Font = Enum.Font.GothamBold
 SpeedLabel.Text = "VELOCITY: 50"
 SpeedLabel.TextColor3 = Color3.fromRGB(180, 220, 255)
-SpeedLabel.TextSize = 13
+SpeedLabel.TextSize = 12
 
 local MinusBtn = Instance.new("TextButton", SpeedContainer)
-MinusBtn.Size = UDim2.new(0, 35, 0, 35)
-MinusBtn.Position = UDim2.new(0, 0, 0.5, -17.5)
+MinusBtn.Size = UDim2.new(0, 30, 0, 30)
+MinusBtn.Position = UDim2.new(0, 0, 0.5, -15)
 MinusBtn.BackgroundColor3 = Color3.fromRGB(40, 15, 20)
 MinusBtn.Font = Enum.Font.GothamBold
 MinusBtn.Text = "-"
 MinusBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
-MinusBtn.TextSize = 16
+MinusBtn.TextSize = 14
 MinusBtn.AutoButtonColor = false
-Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 8)
 
 local PlusBtn = Instance.new("TextButton", SpeedContainer)
-PlusBtn.Size = UDim2.new(0, 35, 0, 35)
-PlusBtn.Position = UDim2.new(1, -35, 0.5, -17.5)
+PlusBtn.Size = UDim2.new(0, 30, 0, 30)
+PlusBtn.Position = UDim2.new(1, -30, 0.5, -15)
 PlusBtn.BackgroundColor3 = Color3.fromRGB(15, 40, 25)
 PlusBtn.Font = Enum.Font.GothamBold
 PlusBtn.Text = "+"
 PlusBtn.TextColor3 = Color3.fromRGB(90, 255, 150)
-PlusBtn.TextSize = 16
+PlusBtn.TextSize = 14
 PlusBtn.AutoButtonColor = false
-Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 8)
 
--- RGB Tema Toggle Butonu
-local RGBToggleBtn = Instance.new("TextButton", MainFrame)
-RGBToggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
-RGBToggleBtn.Position = UDim2.new(0.05, 0, 0, 384)
-RGBToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-RGBToggleBtn.Font = Enum.Font.GothamBold
-RGBToggleBtn.Text = "RGB TEMA: [ AÇIK ]"
-RGBToggleBtn.TextColor3 = Color3.fromRGB(0, 240, 255)
-RGBToggleBtn.TextSize = 13
-RGBToggleBtn.AutoButtonColor = false
-Instance.new("UICorner", RGBToggleBtn).CornerRadius = UDim.new(0, 10)
-local RGBToggleStroke = Instance.new("UIStroke", RGBToggleBtn)
-RGBToggleStroke.Color = Color3.fromRGB(0, 240, 255)
-RGBToggleStroke.Thickness = 1.5
+
+-- ================= SAYFA 3: OYUNCU İZLEME (SPECTATE / VIEW) =================
+local SpectateLabel = Instance.new("TextLabel", Page3)
+SpectateLabel.Size = UDim2.new(0.9, 0, 0, 25)
+SpectateLabel.Position = UDim2.new(0.05, 0, 0, 10)
+SpectateLabel.BackgroundTransparency = 1
+SpectateLabel.Font = Enum.Font.GothamBold
+SpectateLabel.Text = "OYUNCU İZLEME (VIEW)"
+SpectateLabel.TextColor3 = Color3.fromRGB(0, 240, 255)
+SpectateLabel.TextSize = 12
+SpectateLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- View'i Kapat Butonu
+local StopViewButton = Instance.new("TextButton", Page3)
+StopViewButton.Size = UDim2.new(0.9, 0, 0, 35)
+StopViewButton.Position = UDim2.new(0.05, 0, 0, 40)
+StopViewButton.BackgroundColor3 = Color3.fromRGB(50, 15, 15)
+StopViewButton.Font = Enum.Font.GothamBold
+StopViewButton.Text = "VIEW'İ KAPAT [ PASİF ]"
+StopViewButton.TextColor3 = Color3.fromRGB(255, 90, 90)
+StopViewButton.TextSize = 12
+StopViewButton.AutoButtonColor = false
+Instance.new("UICorner", StopViewButton).CornerRadius = UDim.new(0, 8)
+local StopViewStroke = Instance.new("UIStroke", StopViewButton)
+StopViewStroke.Color = Color3.fromRGB(255, 90, 90)
+StopViewStroke.Thickness = 1.5
+
+-- Oyuncu Listesi İçin Kaydırma Alanı
+local PlayerScroll = Instance.new("ScrollingFrame", Page3)
+PlayerScroll.Size = UDim2.new(0.9, 0, 0, 260)
+PlayerScroll.Position = UDim2.new(0.05, 0, 0, 85)
+PlayerScroll.BackgroundColor3 = Color3.fromRGB(8, 8, 12)
+PlayerScroll.BackgroundTransparency = 0.5
+PlayerScroll.BorderSizePixel = 0
+PlayerScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+PlayerScroll.ScrollBarThickness = 4
+Instance.new("UICorner", PlayerScroll).CornerRadius = UDim.new(0, 10)
+
+local PlayerListLayout = Instance.new("UIListLayout", PlayerScroll)
+PlayerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+PlayerListLayout.Padding = UDim.new(0, 5)
+
+local currentlySpectating = nil
+
+local function updatePlayerList()
+    for _, child in ipairs(PlayerScroll:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    local count = 0
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            count = count + 1
+            local pBtn = Instance.new("TextButton", PlayerScroll)
+            pBtn.Size = UDim2.new(1, -6, 0, 32)
+            pBtn.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+            pBtn.Font = Enum.Font.GothamSemibold
+            pBtn.Text = "  " .. plr.Name .. " (@" .. plr.DisplayName .. ")"
+            pBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+            pBtn.TextSize = 11
+            pBtn.TextXAlignment = Enum.TextXAlignment.Left
+            pBtn.AutoButtonColor = false
+            Instance.new("UICorner", pBtn).CornerRadius = UDim.new(0, 6)
+            
+            pBtn.MouseButton1Click:Connect(function()
+                currentlySpectating = plr
+                StopViewButton.Text = "İZLENEN: " .. plr.Name .. " [ AKTİF ]"
+                StopViewButton.BackgroundColor3 = Color3.fromRGB(15, 50, 30)
+                StopViewButton.TextColor3 = Color3.fromRGB(90, 255, 150)
+                StopViewStroke.Color = Color3.fromRGB(90, 255, 150)
+            end)
+        end
+    end
+    PlayerScroll.CanvasSize = UDim2.new(0, 0, 0, count * 37)
+end
+
+Players.PlayerAdded:Connect(updatePlayerList)
+Players.PlayerRemoving:Connect(updatePlayerList)
+updatePlayerList()
+
+-- Kamera İzleme Döngüsü (1. Şahıs / 3. Şahıs Uyumu)
+RunService.RenderStepped:Connect(function()
+    if currentlySpectating and currentlySpectating.Character then
+        local char = currentlySpectating.Character
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.RootPart then
+            Camera.CameraSubject = humanoid
+        else
+            local head = char:FindFirstChild("Head")
+            if head then
+                Camera.CameraSubject = head
+            end
+        end
+    end
+end)
+
+StopViewButton.MouseButton1Click:Connect(function()
+    currentlySpectating = nil
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    else
+        Camera.CameraSubject = LocalPlayer.Character
+    end
+    StopViewButton.Text = "VIEW'İ KAPAT [ PASİF ]"
+    StopViewButton.BackgroundColor3 = Color3.fromRGB(50, 15, 15)
+    StopViewButton.TextColor3 = Color3.fromRGB(255, 90, 90)
+    StopViewStroke.Color = Color3.fromRGB(255, 90, 90)
+end)
 
 -- ================= YÜKLEME EKRANI =================
 local LoadingFrame = Instance.new("Frame", ScreenGui)
@@ -390,7 +581,7 @@ ToggleMenuButton.MouseButton1Click:Connect(function()
     if menuOpen then
         MainFrame.Visible = true
         MainFrame.Size = UDim2.new(0, 10, 0, 10)
-        TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back), {Size = UDim2.new(0, 340, 0, 508)}):Play()
+        TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back), {Size = UDim2.new(0, 340, 0, 500)}):Play()
     else
         local t = TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Sine), {Size = UDim2.new(0, 0, 0, 0)})
         t:Play()
@@ -423,19 +614,19 @@ ResolutionButton.MouseButton1Click:Connect(function()
     resolutionEnabled = not resolutionEnabled
     ResolutionButton:SetAttribute("ActiveState", resolutionEnabled)
     if resolutionEnabled then
-        ResolutionButton.Text = "BASIK EKRAN (STRETCH): [ AKTİF ]"
+        ResolutionButton.Text = "FOV CHANGER: [ AKTİF ]"
         TweenService:Create(ResolutionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 180)}):Play()
         TweenService:Create(ResBtnStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(255, 255, 255)}):Play()
         pcall(function() Camera.FieldOfView = 90 end)
     else
-        ResolutionButton.Text = "BASIK EKRAN (STRETCH): [ KAPALI ]"
+        ResolutionButton.Text = "FOV CHANGER: [ KAPALI ]"
         TweenService:Create(ResolutionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(15, 35, 50)}):Play()
         TweenService:Create(ResBtnStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(0, 240, 255)}):Play()
         pcall(function() Camera.FieldOfView = 70 end)
     end
 end)
 
--- ================= RGB TORSO TRAIL (İP ŞEKLİNDE GERÇEK TRAIL) =================
+-- ================= RGB TORSO TRAIL =================
 local trailEnabled = false
 local trailConnection = nil
 
@@ -475,7 +666,7 @@ TrailButton.MouseButton1Click:Connect(function()
     TrailButton:SetAttribute("ActiveState", trailEnabled)
     
     if trailEnabled then
-        TrailButton.Text = "RGB TORSO TRAIL (İP): [ AKTİF ]"
+        TrailButton.Text = "RGB TRAIL: [ AKTİF ]"
         TweenService:Create(TrailButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 180)}):Play()
         TweenService:Create(TrailBtnStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(255, 255, 255)}):Play()
         
@@ -491,7 +682,7 @@ TrailButton.MouseButton1Click:Connect(function()
             end
         end)
     else
-        TrailButton.Text = "RGB TORSO TRAIL (İP): [ KAPALI ]"
+        TrailButton.Text = "RGB TRAIL: [ KAPALI ]"
         TweenService:Create(TrailButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(15, 35, 50)}):Play()
         TweenService:Create(TrailBtnStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(0, 240, 255)}):Play()
         
@@ -783,3 +974,18 @@ LocalPlayer.CharacterAdded:Connect(function(_)
     stopFly()
     setNoclipState(false)
 end)
+
+print("AstraOS Cheat Hazır")
+print("AstraOS On Top!")
+print("Eğerki Bu Scripti Kopyalamaya Çalıştıysan Bedava Hesap İçin Teşşekkürler!")
+print("Çünkü Hesabını Ortak Kullanmaya Başliyacağız :)")
+print("Şifreni Değiştirmene Gerek Yok Hala Elimde 1 Kere Çalıştırdın Zaten İyi Şanslar Ve İyi Format Atmalar")
+print("Cihazına Sızdım Bilgisayar Telefon Tablet Fark Etmez Cihazın Artık Elimde ADFAHGSDSAHPJ")
+print("Birde Koruma Normal Hile Sistemleriyle Bir Çalışıyor Silersen Hilede Çalışmaz Kendin Ekleme Yaparsan Yine Çalışmaz Ama Bulabilcen Mi Tabikide Hayır")
+print("AstraOS On Top!")
+print("AstraOS On Top!")
+print("AstraOS On Top!")
+print("AstraOS On Top!")
+print("AstraOS On Top!")
+print("AstraOS On Top!")
+print("AstraOS On Top!")
